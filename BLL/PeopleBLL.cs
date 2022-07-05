@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,7 +18,7 @@ namespace dotnet_test_project.BLL
             HttpResponseMessage response = await ApiHelper.ApiClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                People people = await response.Content.ReadAsAsync<People>();
+                People people = await response.Content.ReadFromJsonAsync<People>();
 
                 return people;
             }
@@ -31,7 +32,7 @@ namespace dotnet_test_project.BLL
             HttpResponseMessage response = await ApiHelper.ApiClient.GetAsync(url + $"?$filter=FirstName eq '{firstName}'");
             if (response.IsSuccessStatusCode)
             {
-                People people = await response.Content.ReadAsAsync<People>();
+                People people = await response.Content.ReadFromJsonAsync<People>();
 
                 return people;
             }
@@ -46,7 +47,7 @@ namespace dotnet_test_project.BLL
             HttpResponseMessage response = await ApiHelper.ApiClient.GetAsync(uri);
             if (response.IsSuccessStatusCode)
             {
-                Person people = await response.Content.ReadAsAsync<Person>();
+                Person people = await response.Content.ReadFromJsonAsync<Person>();
 
                 return people;
             }
