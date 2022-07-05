@@ -1,152 +1,132 @@
-﻿using dotnet_test_project.BLL;
+using dotnet_test_project.BLL;
 using dotnet_test_project.Models;
-using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace dotnet_test_project.View
 {
     public class PeopleView
     {
-        public static void DisplayOptions()
+        readonly PeopleBLL people;
+        readonly TextReader input;
+        readonly TextWriter output;
+
+        public PeopleView(PeopleBLL people, TextReader input, TextWriter output)
         {
-            Console.WriteLine("Please select from below");
-            Console.WriteLine("1-Show Peoples");
-            Console.WriteLine("2-Search People");
-            Console.WriteLine("3-Show Details of Specific Person");
-            Console.WriteLine("Press 1,2 or 3 from Above...");
-            SelectOption();
+            this.people = people;
+            this.input = input;
+            this.output = output;
         }
-        public static void SelectOption()
+
+        public async Task Run()
         {
+            output.WriteLine("Please select from below");
+            output.WriteLine("1-Show People");
+            output.WriteLine("2-Search People");
+            output.WriteLine("3-Show Details of Specific Person");
+            output.WriteLine("Press 1,2 or 3 from Above...");
+
+            int? option = ReadOption();
+            if (option == null)
+            {
+                return;
+            }
+            if (!PeopleBLL.IsValidOption(option.Value))
+            {
+                output.WriteLine("Invalid Option");
+                return;
+            }
+
+            try
+            {
+                switch (option.Value)
+                {
+                    case 1:
+                        ShowList((await people.GetPeople())?.Value);
+                        break;
+                    case 2:
+                        output.Write("Enter First Name : ");
+                        ShowList((await people.FilterPeople(input.ReadLine()))?.Value);
+                        break;
+                    case 3:
+                        output.Write("Enter User Name : ");
+                        ShowDetails(await people.GetPerson(input.ReadLine()));
+                        break;
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                output.WriteLine($"Request failed: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                output.WriteLine("Request failed: the TripPin service did not answer in time");
+            }
+            catch (JsonException ex)
+            {
+                output.WriteLine($"Unexpected response from TripPin: {ex.Message}");
+            }
+        }
+
+        int? ReadOption()
+        {
+            string line = input.ReadLine();
             int option;
+            while (!int.TryParse(line, out option))
+            {
+                if (line == null)
+                {
+                    return null;
+                }
+                output.WriteLine("Not a valid number, try again.");
+                line = input.ReadLine();
+            }
+            return option;
+        }
 
-            String input = Console.ReadLine();
+        void ShowList(List<Person> list)
+        {
+            if (list == null || list.Count == 0)
+            {
+                output.WriteLine("No Record Found");
+                return;
+            }
+            foreach (Person person in list)
+            {
+                ShowSummary(person);
+            }
+        }
 
-            while (!Int32.TryParse(input, out option))
-            {
-                if (input == null)
-                {
-                    return;
-                }
-                Console.WriteLine("Not a valid number, try again.");
-                input = Console.ReadLine();
-            }
-            if (PeopleBLL.ValidInput(option))
-            {
-                if (option == 1)
-                {
-                    ShowAllPeoples();
-                }
-                else if (option == 2)
-                {
-                    SearchPeople();
-                }
-                else
-                {
-                    ShowSpecificPersonDetails();
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid Option");
-            }
-        }
-        public static void ShowAllPeoples()
+        void ShowDetails(Person person)
         {
-            DisplayPeoples().GetAwaiter().GetResult();
-        }
-        public static void ShowSpecificPersonDetails()
-        {
-            Console.Write("Enter User Name : ");
-            string userName = Console.ReadLine();
-            DisplaySpecificPerson(userName).GetAwaiter().GetResult();
-        }
-        public static void SearchPeople()
-        {
-            Console.Write("Enter First Name : ");
-            string firstName = Console.ReadLine();
-            DisplaySearchPeople(firstName).GetAwaiter().GetResult();
-        }
-        static async Task DisplayPeoples()
-        {
-            try
+            if (person == null)
             {
-                People peoples = await PeopleBLL.GetPeoples();
-                foreach (Person person in peoples?.Value ?? new List<Person>())
-                {
-                    DisplayPerson(person);
-                }
+                output.WriteLine("No Record Found");
+                return;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error is occured with exception {ex.Message}");
-            }
-
-
-        }
-        public static async Task DisplaySpecificPerson(string userName)
-        {
-            try
-            {
-                Person person = await PeopleBLL.GetSpecificPeople(userName);
-                if (person != null)
-                {
-                    DisplayDetailed(person);
-                }
-                else
-                {
-                    Console.WriteLine("No Record Found");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error is occured with exception {ex.Message}");
-            }
-        }
-        public static async Task DisplaySearchPeople(string firstName)
-        {
-            try
-            {
-                People peoples = await PeopleBLL.FilterPeople(firstName);
-                if (peoples?.Value?.Count > 0)
-                {
-                    foreach (Person person in peoples.Value)
-                    {
-                        DisplayPerson(person);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("No Record Found");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error is occured with exception {ex.Message}");
-            }
-        }
-        public static void DisplayPerson(Person person)
-        {
-            Console.WriteLine($"User Name : {person.UserName}");
-            Console.WriteLine($"\tName : {person.FirstName} {person.LastName}");
-            Console.WriteLine($"\tAge : {person.Age}");
-            Console.WriteLine($"\tEmail : {JoinOrNone(person.Emails)}");
-        }
-        public static void DisplayDetailed(Person person)
-        {
-            DisplayPerson(person);
-            Console.WriteLine($"\tGender : {person.Gender}");
-            Console.WriteLine($"\tFavourite Feature : {person.FavoriteFeature}");
-            Console.WriteLine($"\tFeatures : {JoinOrNone(person.Features)}");
-            Console.WriteLine($"\tAddress : {JoinOrNone(person.AddressInfo?.Select(location => location.Address))}");
+            ShowSummary(person);
+            output.WriteLine($"\tGender : {person.Gender}");
+            output.WriteLine($"\tFavourite Feature : {person.FavoriteFeature}");
+            output.WriteLine($"\tFeatures : {JoinOrNone(person.Features)}");
+            output.WriteLine($"\tAddress : {JoinOrNone(person.AddressInfo?.Select(location => location.Address))}");
             if (person.HomeAddress != null)
             {
-                Console.WriteLine($"\tHome Address : {person.HomeAddress.Address}");
+                output.WriteLine($"\tHome Address : {person.HomeAddress.Address}");
             }
         }
+
+        void ShowSummary(Person person)
+        {
+            output.WriteLine($"User Name : {person.UserName}");
+            output.WriteLine($"\tName : {person.FirstName} {person.LastName}");
+            output.WriteLine($"\tAge : {person.Age}");
+            output.WriteLine($"\tEmail : {JoinOrNone(person.Emails)}");
+        }
+
         static string JoinOrNone(IEnumerable<string> values)
         {
             string joined = string.Join(", ", values ?? Enumerable.Empty<string>());
