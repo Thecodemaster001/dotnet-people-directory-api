@@ -1,0 +1,38 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# Test results and coverage
+TestResults/
+coverage/
+*.coverage
+*.trx
+
+# Logs and temp
+*.log
+tmp/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python / Node leftovers
+project_venv/
+node_modules/
+
+# GitHub metadata is not tracked
+.github/
+
+# OS files
+.DS_Store
+Thumbs.db
