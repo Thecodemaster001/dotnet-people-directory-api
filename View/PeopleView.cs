@@ -27,6 +27,10 @@ namespace dotnet_test_project.View
 
             while (!Int32.TryParse(input, out option))
             {
+                if (input == null)
+                {
+                    return;
+                }
                 Console.WriteLine("Not a valid number, try again.");
                 input = Console.ReadLine();
             }
@@ -71,7 +75,7 @@ namespace dotnet_test_project.View
             try
             {
                 People peoples = await PeopleBLL.GetPeoples();
-                foreach (Person person in peoples.Value)
+                foreach (Person person in peoples?.Value ?? new List<Person>())
                 {
                     DisplayPerson(person);
                 }
@@ -107,7 +111,7 @@ namespace dotnet_test_project.View
             try
             {
                 People peoples = await PeopleBLL.FilterPeople(firstName);
-                if (peoples.Value.Count > 0)
+                if (peoples?.Value?.Count > 0)
                 {
                     foreach (Person person in peoples.Value)
                     {
@@ -129,30 +133,24 @@ namespace dotnet_test_project.View
             Console.WriteLine($"User Name : {person.UserName}");
             Console.WriteLine($"\tName : {person.FirstName} {person.LastName}");
             Console.WriteLine($"\tAge : {person.Age}");
-            Console.Write($"\tEmail : ");
-            person.Emails.ForEach(email => Console.Write($"{email} ,"));
-            Console.WriteLine("");
+            Console.WriteLine($"\tEmail : {JoinOrNone(person.Emails)}");
         }
         public static void DisplayDetailed(Person person)
         {
-            try
+            DisplayPerson(person);
+            Console.WriteLine($"\tGender : {person.Gender}");
+            Console.WriteLine($"\tFavourite Feature : {person.FavoriteFeature}");
+            Console.WriteLine($"\tFeatures : {JoinOrNone(person.Features)}");
+            Console.WriteLine($"\tAddress : {JoinOrNone(person.AddressInfo?.Select(location => location.Address))}");
+            if (person.HomeAddress != null)
             {
-                DisplayPerson(person);
-                Console.WriteLine($"\tFavourite Feature : {person.Gender}");
-                Console.WriteLine($"\tFavourite Feature : {person.FavoriteFeature}");
-                Console.Write($"\tFeatures : ");
-                person.Features.ForEach(feature => Console.Write($"{feature} ,"));
-                Console.Write($"\n\tAddress : ");
-                person.AddressInfo.ForEach(address => Console.Write($"{address.Address} ,"));
-                if (person.HomeAddress != null)
-                {
-                    Console.WriteLine($"\tHome Address : {person.HomeAddress.Address}");
-                }
+                Console.WriteLine($"\tHome Address : {person.HomeAddress.Address}");
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error is occured with exception {ex.Message}");
-            }
+        }
+        static string JoinOrNone(IEnumerable<string> values)
+        {
+            string joined = string.Join(", ", values ?? Enumerable.Empty<string>());
+            return joined.Length > 0 ? joined : "-";
         }
     }
 }

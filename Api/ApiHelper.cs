@@ -14,7 +14,7 @@ namespace dotnet_test_project.Api
 
         public static void InitializeClient()
         {
-            ApiClient = new HttpClient();
+            ApiClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
             ApiClient.DefaultRequestHeaders.Accept.Clear();
             ApiClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
